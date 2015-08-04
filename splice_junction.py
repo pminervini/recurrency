@@ -25,14 +25,14 @@ def experiment(model, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
 
     x = T.matrix(dtype=theano.config.floatX)
     y, _ = model(x)
-    output = y[-1]
+    output = T.nnet.softmax(y[-1])[0]
 
-    f = O.minimize(x, output, model.params, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
+    f = O.minimize(x, output, model.params, is_softmax=True, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
     dataset = splice.Splice_Junction()
     N = len(dataset.labels)
 
-    NV = 10
+    NV = int(N / 10)
     NT = N - NV
 
     order = np.random.permutation(N)
@@ -51,8 +51,8 @@ def experiment(model, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
         for i in range(NV):
             sequence = dataset.sequences[valid_idx[i]]
             label = dataset.labels[valid_idx[i]][0]
-            yi = fy(sequence)[0]
-            loss_valid += np.abs(yi - label)
+            oi = fy(sequence)[0]
+            loss_valid += np.abs(1 - oi[label])
 
         logging.info('[%s %i]\t%s\t%s' % (model.name, epoch, loss_train, loss_valid))
 
@@ -73,6 +73,7 @@ def main(argv):
 
         if opt == '-h':
             logging.info(usage_str)
+            return
         elif opt == '--rnn':
             is_rnn = True
         elif opt == '--lstm':
@@ -93,13 +94,13 @@ def main(argv):
             epsilon = float(arg)
 
     if is_rnn:
-        model = rnn.RNN(np.random, 8, n_hidden, 1)
+        model = rnn.RNN(np.random, 8, n_hidden, 3)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstm:
-        model = lstm.LSTM(np.random, 8, n_hidden, 1)
+        model = lstm.LSTM(np.random, 8, n_hidden, 3)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstmp:
-        model = lstmp.LSTMP(np.random, 8, n_hidden, 1)
+        model = lstmp.LSTMP(np.random, 8, n_hidden, 3)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 

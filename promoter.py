@@ -73,6 +73,7 @@ def main(argv):
 
         if opt == '-h':
             logging.info(usage_str)
+            return
         elif opt == '--rnn':
             is_rnn = True
         elif opt == '--lstm':

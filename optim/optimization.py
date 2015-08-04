@@ -7,10 +7,14 @@ import theano.tensor as T
 import collections
 import update as U
 
-def minimize(inputs, y, params, optimizer='sgd', rate=1.0, decay=0.99, epsilon=1e-6):
+def minimize(inputs, y, params, optimizer='sgd', is_softmax=False, rate=1.0, decay=0.99, epsilon=1e-6):
 
     t, lr = T.vector(), T.scalar()
     loss = T.abs_(t - y).mean(axis = 0).sum()
+
+    if is_softmax:
+        t = T.ivector()
+        loss = T.abs_(1 - y[t]).mean(axis = 0).sum()
 
     updates = collections.OrderedDict()
 

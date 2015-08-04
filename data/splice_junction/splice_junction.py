@@ -31,8 +31,6 @@ class Splice_Junction(object):
             'EI': [0], 'IE': [1], 'N': [2]
         }
 
-        print(dataset)
-
         self.labels = [classes[i[0]] for i in dataset]
         self.sequences = [[symbols[j] for j in i[2]] for i in dataset]
 

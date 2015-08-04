@@ -19,9 +19,12 @@ class Promoter(object):
             'a': [1, 0, 0, 0],
             'g': [0, 1, 0, 0],
             't': [0, 0, 1, 0],
-            'c': [0, 0, 0, 1],
+            'c': [0, 0, 0, 1]
+        }
+
+        classes = {
             '-': [0], '+': [1]
         }
 
-        self.labels = [symbols[i[0]] for i in dataset]
+        self.labels = [classes[i[0]] for i in dataset]
         self.sequences = [[symbols[j] for j in i[2]] for i in dataset]
