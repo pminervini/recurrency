@@ -5,7 +5,7 @@ import csv
 
 import logging
 
-class Promoter:
+class Promoter(object):
 
     def __init__(self, path='data/promoter/promoter-gene-sequences/promoters.data'):
         dataset = []
