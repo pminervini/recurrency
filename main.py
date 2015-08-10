@@ -1,15 +1,12 @@
-#!/usr/bin/python -uB
+#!/usr/bin/python3 -uB
 # -*- coding: utf-8 -*-
 
 import numpy as np
 import theano
 import theano.tensor as T
 
-import energy.rnn as rnn
-import energy.lstm as lstm
-import energy.lstmp as lstmp
-
-import optim.optimization as O
+import recurrency.layers.recurrent as recurrent
+import recurrency.optimization.optimization as optimization
 
 import collections
 
@@ -27,7 +24,7 @@ def experiment(model, length, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-
 
     output = y[-1]
 
-    f = O.minimize(x, output, model.params, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
+    f = optimization.minimize(x, output, model.params, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
     for epoch in range(100):
         err = .0
@@ -80,13 +77,13 @@ def main(argv):
             epsilon = float(arg)
 
     if is_rnn:
-        model = rnn.RNN(np.random, 1, n_hidden, 1)
+        model = recurrent.RNN(np.random, 1, n_hidden, 1)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstm:
-        model = lstm.LSTM(np.random, 1, n_hidden, 1)
+        model = recurrent.LSTM(np.random, 1, n_hidden, 1)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstmp:
-        model = lstmp.LSTMP(np.random, 1, n_hidden, 1)
+        model = recurrent.LSTMP(np.random, 1, n_hidden, 1)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 

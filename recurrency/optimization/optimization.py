@@ -1,11 +1,11 @@
-#!/usr/bin/python -uB
 # -*- coding: utf-8 -*-
 
 import theano
 import theano.tensor as T
 
 import collections
-import update as U
+import recurrency.optimization.update as update
+
 
 def minimize(inputs, y, params, optimizer='sgd', is_softmax=False, rate=1.0, decay=0.99, epsilon=1e-6):
 
@@ -21,13 +21,13 @@ def minimize(inputs, y, params, optimizer='sgd', is_softmax=False, rate=1.0, dec
     if optimizer == 'sgd':
         pass # do nothing
     elif optimizer == 'momentum':
-        param_previous_update_map = U.momentum_params(params)
+        param_previous_update_map = update.momentum_params(params)
     elif optimizer == 'adagrad':
-        param_squared_gradients_map = U.adagrad_params(params)
+        param_squared_gradients_map = update.adagrad_params(params)
     elif optimizer == 'adadelta':
-        param_squared_gradients_map, param_squared_updates_map = U.adadelta_params(params)
+        param_squared_gradients_map, param_squared_updates_map = update.adadelta_params(params)
     elif optimizer == 'rmsprop':
-        param_squared_gradients_map = U.rmsprop_params(params)
+        param_squared_gradients_map = update.rmsprop_params(params)
     else:
         raise ValueError('Unknown optimizer: %s' % (optimizer))
 
@@ -35,20 +35,20 @@ def minimize(inputs, y, params, optimizer='sgd', is_softmax=False, rate=1.0, dec
 
     for param, gradient in zip(params, loss_gradients):
         if optimizer == 'sgd': # SGD
-            U.sgd(param, rate, gradient, updates)
+            update.sgd(param, rate, gradient, updates)
         elif optimizer == 'momentum': # SGD+MOMENTUM
             param_previous_update = param_previous_update_map[param]
-            U.momentum(param, rate, decay, gradient, updates, param_previous_update)
+            update.momentum(param, rate, decay, gradient, updates, param_previous_update)
         elif optimizer == 'adagrad': # ADAGRAD
             param_squared_gradients = param_squared_gradients_map[param]
-            U.adagrad(param, rate, epsilon, gradient, updates, param_squared_gradients)
+            update.adagrad(param, rate, epsilon, gradient, updates, param_squared_gradients)
         elif optimizer == 'adadelta': # ADADELTA
             param_squared_gradients = param_squared_gradients_map[param]
             param_squared_updates = param_squared_updates_map[param]
-            U.adadelta(param, rate, decay, epsilon, gradient, updates, param_squared_gradients, param_squared_updates)
+            update.adadelta(param, rate, decay, epsilon, gradient, updates, param_squared_gradients, param_squared_updates)
         elif optimizer == 'rmsprop': # RMSPROP
             param_squared_gradients = param_squared_gradients_map[param]
-            U.rmsprop(param, rate, decay, max_learning_rate, epsilon, gradient, updates, param_squared_gradients)
+            update.rmsprop(param, rate, decay, max_learning_rate, epsilon, gradient, updates, param_squared_gradients)
         else:
             raise ValueError('Unknown optimizer: %s' % (optimizer))
 
