@@ -18,10 +18,7 @@ import sys
 def experiment(model, length, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
 
     x = T.matrix(dtype=theano.config.floatX)
-
     y, _ = model(x)
-    #y, _ = model(y)
-
     output = y[-1]
 
     f = optimization.minimize(x, output, model.params, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
@@ -38,7 +35,7 @@ def experiment(model, length, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-
 
 def main(argv):
     is_rnn, is_lstm, is_lstmp = False, False, False
-    optimizer, rate, decay, epsilon = 'sgd', 0.1, 0.95, 1e-6
+    optimizer, rate, decay, epsilon = 'momentum', 0.1, 0.95, 1e-6
     length, n_hidden = 10, 10
 
     usage_str = ('Usage: %s [-h] [--rnn] [--lstm] [--lstmp] [--hidden=<hidden>] [--length=<n>] [--optimizer=<optimizer>] [--rate=<rate>] [--decay=<decay>] [--epsilon=<epsilon>]' % (sys.argv[0]))
