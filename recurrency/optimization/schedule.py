@@ -17,7 +17,9 @@ def RMS(value, epsilon=1e-6):
 
 
 class Schedule(object):
-
+    '''
+        Abstract class for adaptive per-parameter learning rate schedules.
+    '''
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -26,7 +28,11 @@ class Schedule(object):
 
 
 class SGD(Schedule):
+    '''
+        Plain Stochastic Gradient Descent. [1]
 
+        [1] https://en.wikipedia.org/wiki/Stochastic_gradient_descent
+    '''
     def __init__(self, params, rate=1.0, decay=0.95):
         pass
 
@@ -37,7 +43,11 @@ class SGD(Schedule):
 
 
 class Momentum(Schedule):
+    '''
+        The Momentum method [1]
 
+        [1] Rumelhart, D. E. et al. - Learning representations by back-propagating errors. - Nature 323
+    '''
     def __init__(self, params, rate=1.0, decay=0.95):
         self.param_previous_update_map = collections.OrderedDict()
         self.rate, self.decay = rate, decay
@@ -62,7 +72,11 @@ class Momentum(Schedule):
 
 
 class AdaGrad(Schedule):
+    '''
+        AdaGrad [1]
 
+        [1] Duchi, J. et al. - Adaptive subgradient methods for online learning and stochastic optimization. - JMLR 12
+    '''
     def __init__(self, params, rate=1.0, epsilon=1e-6):
         self.param_squared_gradients_map = collections.OrderedDict()
         self.rate, self.epsilon = rate, epsilon
@@ -87,7 +101,9 @@ class AdaGrad(Schedule):
 
 
 class AdaDelta(Schedule):
-
+    '''
+        Zeiler, M. D. - ADADELTA: An adaptive learning rate method. - arXiv:1212.5701
+    '''
     def __init__(self, params, rate=1.0, decay=0.95, epsilon=1e-6):
         self.param_squared_gradients_map = collections.OrderedDict()
         self.param_squared_updates_map = collections.OrderedDict()
@@ -107,6 +123,9 @@ class AdaDelta(Schedule):
             self.param_squared_updates_map[param] = param_squared_updates
 
     def update(self, param, gradient, updates):
+        param_squared_gradients = self.param_squared_gradients_map[param]
+        param_squared_updates = self.param_squared_updates_map[param]
+
         # Accumulate Gradient:
         # E[g^2]t = rho * E[g^2]t-1 + (1 - rho) * g^2_t
         param_squared_gradients_updated = (self.decay * param_squared_gradients) + ((1.0 - self.decay) * (gradient ** 2)) # Eg2_t = rho Eg2_t-1 + (1-rho) g2_t
@@ -130,8 +149,12 @@ class AdaDelta(Schedule):
 
 
 class RMSProp(Schedule):
+    '''
+        RMSProp [1]
 
-    def __init__(params, rate=1.0, decay=0.95, max_learning_rate=1e4, epsilon=1e-6):
+        [1] Tieleman, T. et al. - Lecture 6.5: rmsprop - COURSERA: Neural Networks for Machine Learning
+    '''
+    def __init__(self, params, rate=1.0, decay=0.95, max_learning_rate=1e4, epsilon=1e-6):
         self.param_squared_gradients_map = collections.OrderedDict()
         self.rate, self.decay, self.max_learning_rate, self.epsilon = rate, decay, max_learning_rate, epsilon
 
@@ -152,7 +175,7 @@ class RMSProp(Schedule):
 
         # Compute Update:
         # [delta_x]t = - (eta / E[g^2]t) g_
-        delta_x_t = - (rate / RMS(param_squared_gradients_updated, epsilon=self.epsilon)) * gradient
+        delta_x_t = - (self.rate / RMS(param_squared_gradients_updated, epsilon=self.epsilon)) * gradient
 
         # maxLearningRate approx. as in https://github.com/w-cheng/optimx/blob/master/rmsprop.lua
         if (self.max_learning_rate is not None):

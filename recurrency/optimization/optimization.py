@@ -7,7 +7,7 @@ import collections
 import recurrency.optimization.schedule as schedule
 
 
-def minimize(inputs, y, params, optimizer='sgd', is_softmax=False, rate=1.0, decay=0.99, epsilon=1e-6):
+def minimize(inputs, y, params, optimizer='sgd', is_softmax=False, rate=1.0, decay=0.99, max_learning_rate=1e4, epsilon=1e-6):
 
     t, lr = T.vector(), T.scalar()
     loss = T.abs_(t - y).mean(axis = 0).sum()
@@ -29,7 +29,7 @@ def minimize(inputs, y, params, optimizer='sgd', is_softmax=False, rate=1.0, dec
     elif optimizer == 'adadelta':
         scheduler = schedule.AdaDelta(params, rate=rate, decay=decay, epsilon=epsilon)
     elif optimizer == 'rmsprop':
-        scheduler = schedule.RMSProp(params, rate=rate, decay=decay, epsilon=epsilon)
+        scheduler = schedule.RMSProp(params, rate=rate, decay=decay, max_learning_rate=max_learning_rate, epsilon=epsilon)
     else:
         raise ValueError('Unknown optimizer: %s' % (optimizer))
 
