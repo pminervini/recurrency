@@ -26,7 +26,7 @@ def experiment(model, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
     t = T.iscalar()
     p = T.nnet.softmax(y[-1])[0][t]
 
-    loss = T.abs_(1 - p).sum()
+    loss = T.abs_(1. - p).sum()
 
     f = optimization.minimize([x, t], loss, model.params, is_softmax=True, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
