@@ -5,11 +5,8 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-import energy.rnn as rnn
-import energy.lstm as lstm
-import energy.lstmp as lstmp
-
-import optim.optimization as O
+import recurrency.layers.recurrent as recurrent
+import recurrency.optimization.optimization as optimization
 
 import data.splice_junction.splice_junction as splice
 
@@ -25,34 +22,38 @@ def experiment(model, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
 
     x = T.matrix(dtype=theano.config.floatX)
     y, _ = model(x)
-    output = T.nnet.softmax(y[-1])[0]
 
-    f = O.minimize(x, output, model.params, is_softmax=True, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
+    t = T.iscalar()
+    p = T.nnet.softmax(y[-1])[0][t]
 
-    dataset = splice.Splice_Junction()
+    loss = T.abs_(1 - p).sum()
+
+    f = optimization.minimize([x, t], loss, model.params, is_softmax=True, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
+
+    dataset = splice.SpliceJunction()
+
     N = len(dataset.labels)
-
     NV = int(N / 10)
     NT = N - NV
 
     order = np.random.permutation(N)
     train_idx, valid_idx = order[NV:], order[:NV]
 
-    fy = theano.function([x], [output])
+    fy = theano.function([x, t], [loss])
 
     for epoch in range(10000):
         loss_train, loss_valid, order = .0, .0, np.random.permutation(NT)
 
         for i in range(NT):
             sequence = dataset.sequences[train_idx[order[i]]]
-            label = dataset.labels[train_idx[order[i]]]
-            loss_train += f(sequence, label, rate)[0]
+            label = dataset.labels[train_idx[order[i]]][0]
+            loss_train += f(sequence, label)[0]
 
         for i in range(NV):
             sequence = dataset.sequences[valid_idx[i]]
             label = dataset.labels[valid_idx[i]][0]
-            oi = fy(sequence)[0]
-            loss_valid += np.abs(1 - oi[label])
+            lossv = fy(sequence, label)[0]
+            loss_valid += lossv
 
         logging.info('[%s %i]\t%s\t%s' % (model.name, epoch, loss_train, loss_valid))
 
@@ -94,13 +95,13 @@ def main(argv):
             epsilon = float(arg)
 
     if is_rnn:
-        model = rnn.RNN(np.random, 8, n_hidden, 3)
+        model = recurrent.RNN(np.random, 8, n_hidden, 3)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstm:
-        model = lstm.LSTM(np.random, 8, n_hidden, 3)
+        model = recurrent.LSTM(np.random, 8, n_hidden, 3)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstmp:
-        model = lstmp.LSTMP(np.random, 8, n_hidden, 3)
+        model = recurrent.LSTMP(np.random, 8, n_hidden, 3)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 

@@ -5,11 +5,8 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-import energy.rnn as rnn
-import energy.lstm as lstm
-import energy.lstmp as lstmp
-
-import optim.optimization as O
+import recurrency.layers.recurrent as recurrent
+import recurrency.optimization.optimization as optimization
 
 import data.promoter.promoter as promoter
 
@@ -25,9 +22,11 @@ def experiment(model, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
 
     x = T.matrix(dtype=theano.config.floatX)
     y, _ = model(x)
-    output = y[-1]
 
-    f = O.minimize(x, output, model.params, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
+    t = T.vector()
+    loss = T.abs_(t - y[-1]).mean(axis = 0).sum()
+
+    f = optimization.minimize([x, t], loss, model.params, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
     dataset = promoter.Promoter()
     N = len(dataset.labels)
@@ -38,7 +37,7 @@ def experiment(model, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
     order = np.random.permutation(N)
     train_idx, valid_idx = order[NV:], order[:NV]
 
-    fy = theano.function([x], [output])
+    fy = theano.function([x, t], [loss])
 
     for epoch in range(10000):
         loss_train, loss_valid, order = .0, .0, np.random.permutation(NT)
@@ -46,12 +45,12 @@ def experiment(model, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
         for i in range(NT):
             sequence = dataset.sequences[train_idx[order[i]]]
             label = dataset.labels[train_idx[order[i]]]
-            loss_train += f(sequence, label, rate)[0]
+            loss_train += f(sequence, label)[0]
 
         for i in range(NV):
             sequence = dataset.sequences[valid_idx[i]]
-            label = dataset.labels[valid_idx[i]][0]
-            yi = fy(sequence)[0]
+            label = dataset.labels[valid_idx[i]]
+            yi = fy(sequence, label)[0]
             loss_valid += np.abs(yi - label)
 
         logging.info('[%s %i]\t%s\t%s' % (model.name, epoch, loss_train, loss_valid))
@@ -94,13 +93,13 @@ def main(argv):
             epsilon = float(arg)
 
     if is_rnn:
-        model = rnn.RNN(np.random, 4, n_hidden, 1)
+        model = recurrent.RNN(np.random, 4, n_hidden, 1)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstm:
-        model = lstm.LSTM(np.random, 4, n_hidden, 1)
+        model = recurrent.LSTM(np.random, 4, n_hidden, 1)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstmp:
-        model = lstmp.LSTMP(np.random, 4, n_hidden, 1)
+        model = recurrent.LSTMP(np.random, 4, n_hidden, 1)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 

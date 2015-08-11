@@ -5,7 +5,7 @@ import csv
 
 import logging
 
-class Splice_Junction(object):
+class SpliceJunction(object):
 
     def __init__(self, path='data/splice_junction/splice-junction-gene-sequences/splice.data'):
         dataset = []

@@ -16,19 +16,22 @@ import sys
 
 
 def experiment(model, length, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
-
+    np.random.seed(123)
+    
     x = T.matrix(dtype=theano.config.floatX)
     y, _ = model(x)
-    output = y[-1]
 
-    f = optimization.minimize(x, output, model.params, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
+    t = T.vector()
+    loss = T.abs_(t - y[-1]).mean(axis = 0).sum()
+
+    f = optimization.minimize([x, t], loss, model.params, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
     for epoch in range(100):
         err = .0
-        for i in range(10000):
+        for i in range(1000):
             instance = np.random.randint(2, size=(length, 1)).astype(theano.config.floatX)
             vt = instance[0]
-            err += f(instance, vt, 0.1)[0]
+            err += f(instance, vt)[0]
 
         logging.info('[%s %i]\t%s' % (model.name, epoch, err))
 
