@@ -4,7 +4,9 @@ import numpy as np
 import theano
 import theano.tensor as T
 
+import recurrency.utils.utils as utils
 import recurrency.layers.layer as layer
+
 import logging
 
 
@@ -25,9 +27,9 @@ class RNN(layer.Layer):
         b_h = self.initialize(rng, size=(n_hidden,), tag='b_h')
         W_ih = self.initialize(rng, size=(n_in, n_hidden), tag='W_ih')
         W_hh = self.initialize(rng, size=(n_hidden, n_hidden), tag='W_hh')
-        W_ho = self.initialize(rng, size=(n_hidden, n_out), tag='Who')
+        W_ho = self.initialize(rng, size=(n_hidden, n_out), tag='W_ho')
         b_o = self.initialize(rng, size=(n_out,), tag='b_o')
-        h0 = theano.shared(np.zeros(n_hidden, dtype=theano.config.floatX), name='h0')
+        h0 = utils.shared_zeros(n_hidden, name='h_0')
         return [W_ih, W_hh, b_h, W_ho, b_o], [h0]
 
     # sequences: x_t, prior results: h_tm1, non-sequences: W_ih, W_hh, W_ho, b_h
@@ -42,12 +44,13 @@ class RNN(layer.Layer):
         return [h_t, y_t]
 
     def __init__(self, rng, n_in, n_hidden, n_out):
+        super(RNN, self).__init__()
         self.name = 'RNN(%i, %i, %i)' % (n_in, n_hidden, n_out)
 
         self.act = T.nnet.sigmoid
         self.non_sequences, self.sequences = self.get_parameters(rng, n_in, n_hidden, n_out)
 
-        self.params = self.non_sequences + self.sequences
+        self.params += self.non_sequences + self.sequences
 
     def __call__(self, x):
         # hidden and outputs of the entire sequence
@@ -99,7 +102,7 @@ class LSTM(layer.Layer):
         W_hy = self.initialize(rng, size=(n_hidden, n_out), tag='W_hy')
         b_y = self.initialize(rng, size=(n_out,), tag='b_y')
 
-        c0 = theano.shared(np.zeros(n_hidden, dtype=theano.config.floatX), name='c0')
+        c0 = utils.shared_zeros(n_hidden, name='c_0')
 
         return [W_xi, W_hi, W_ci, b_i, W_xf, W_hf, W_cf, b_f, W_xc, W_hc, b_c, W_xo, W_ho, W_co, b_o, W_hy, b_y], c0
 
@@ -129,6 +132,8 @@ class LSTM(layer.Layer):
         return [h_t, c_t, y_t]
 
     def __init__(self, rng, n_in, n_hidden, n_out):
+        super(LSTM, self).__init__()
+
         self.name = 'LSTM(%i, %i, %i)' % (n_in, n_hidden, n_out)
 
         self.act = T.nnet.sigmoid
@@ -141,7 +146,7 @@ class LSTM(layer.Layer):
         h0 = T.tanh(c0)
         self.sequences = [h0, c0]
 
-        self.params = self.non_sequences + [c0]
+        self.params += self.non_sequences + [c0]
 
     def __call__(self, x):
         # hidden and outputs of the entire sequence
@@ -197,7 +202,7 @@ class LSTMP(layer.Layer):
 
         b_y = self.initialize(rng, size=(n_out,), tag='b_y')
 
-        c0 = theano.shared(np.zeros(n_hidden, dtype=theano.config.floatX), name='c0')
+        c0 = utils.shared_zeros(n_hidden, name='c_0')
 
         return [W_xi, W_hi, W_ci, b_i, W_xf, W_hf, W_cf, b_f, W_xc, W_hc, b_c, W_xo, W_ho, W_co, b_o, W_hr, W_ry, b_y], c0
 
@@ -231,6 +236,8 @@ class LSTMP(layer.Layer):
         return [h_t, c_t, y_t]
 
     def __init__(self, rng, n_in, n_hidden, n_out):
+        super(LSTMP, self).__init__()
+
         self.name = 'LSTMP(%i, %i, %i)' % (n_in, n_hidden, n_out)
 
         self.act = T.nnet.sigmoid
@@ -243,7 +250,7 @@ class LSTMP(layer.Layer):
         h0 = T.tanh(c0)
         self.sequences = [h0, c0]
 
-        self.params = self.non_sequences + [c0]
+        self.params += self.non_sequences + [c0]
 
     def __call__(self, x):
         # hidden and outputs of the entire sequence
