@@ -6,6 +6,17 @@ Maintainer - [Pasquale Minervini](http://github.com/pminervini)
 
 ## References
 
+Recurrent Neural Networks, (Projected) Long Short-Term Mememory Networks:
 - Sak, H. et al. - [Long Short-Term Memory Based Recurrent Neural Network Architectures for Large Vocabulary Speech Recognition](http://arxiv.org/abs/1402.1128) - INTERSPEECH 2014
+
+Gated Recurrent Units, Gated-Feedback Recurrent Neural Networks:
+- Chung, J. et al. - [Empirical Evaluation of Gated Recurrent Neural Networks on Sequence Modeling](http://arxiv.org/abs/1412.3555) - arXiv:1412.3555
+- Chung, J. et al. - [Gated Feedback Recurrent Neural Networks](http://arxiv.org/abs/1502.02367) - arXiv:1502.02367
+
+Sequence-to-Sequence Learning (e.g. for Machine Translation):
 - Sutskever, I. et al. - [Sequence to Sequence Learning
 with Neural Networks](http://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf) - NIPS 2014
+
+
+Parameters initialization and learning rate scheduling:
+- Glorot, X. et al. - [Understanding the difficulty of training deep feedforward neural networks](http://jmlr.org/proceedings/papers/v9/glorot10a/glorot10a.pdf) - AISTATS 2010

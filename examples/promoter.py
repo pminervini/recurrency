@@ -56,20 +56,19 @@ def experiment(model, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
         logging.info('[%s %i]\t%s\t%s' % (model.name, epoch, loss_train, loss_valid))
 
 def main(argv):
-    is_rnn, is_lstm, is_lstmp = False, False, False
+    is_rnn, is_lstm, is_lstmp, is_gru = False, False, False, False
     optimizer, rate, decay, epsilon = 'sgd', 0.1, 0.95, 1e-6
     n_hidden = 10
 
-    usage_str = ('Usage: %s [-h] [--rnn] [--lstm] [--lstmp] [--hidden=<hidden>] [--optimizer=<optimizer>] [--rate=<rate>] [--decay=<decay>] [--epsilon=<epsilon>]' % (sys.argv[0]))
+    usage_str = ('Usage: %s [-h] [--rnn] [--lstm] [--lstmp] [--gru] [--hidden=<hidden>] [--optimizer=<optimizer>] [--rate=<rate>] [--decay=<decay>] [--epsilon=<epsilon>]' % (sys.argv[0]))
 
     try:
-        opts, args = getopt.getopt(argv, 'h', ['rnn', 'lstm', 'lstmp', 'hidden=', 'optimizer=', 'rate=', 'decay=', 'epsilon='])
+        opts, args = getopt.getopt(argv, 'h', ['rnn', 'lstm', 'lstmp', 'gru', 'hidden=', 'optimizer=', 'rate=', 'decay=', 'epsilon='])
     except getopt.GetoptError:
         logging.warn(usage_str)
         sys.exit(2)
 
     for opt, arg in opts:
-
         if opt == '-h':
             logging.info(usage_str)
             return
@@ -79,6 +78,8 @@ def main(argv):
             is_lstm = True
         elif opt == '--lstmp':
             is_lstmp = True
+        elif opt == '--gru':
+            is_gru = True
 
         elif opt == '--hidden':
             n_hidden = int(arg)
@@ -92,14 +93,19 @@ def main(argv):
         elif opt == '--epsilon':
             epsilon = float(arg)
 
+    n_in, n_out = 4, 1
+
     if is_rnn:
-        model = recurrent.RNN(np.random, 4, n_hidden, 1)
+        model = recurrent.RNN(np.random, n_in, n_hidden, n_out)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstm:
-        model = recurrent.LSTM(np.random, 4, n_hidden, 1)
+        model = recurrent.LSTM(np.random, n_in, n_hidden, n_out)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstmp:
-        model = recurrent.LSTMP(np.random, 4, n_hidden, 1)
+        model = recurrent.LSTMP(np.random, n_in, n_hidden, n_out)
+        experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
+    if is_gru:
+        model = recurrent.GRU(np.random, n_in, n_hidden, n_out)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 

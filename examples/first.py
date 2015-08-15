@@ -78,17 +78,19 @@ def main(argv):
         elif opt == '--epsilon':
             epsilon = float(arg)
 
+    n_in, n_out = 1, 1
+
     if is_rnn:
-        model = recurrent.RNN(np.random, 1, n_hidden, 1)
+        model = recurrent.RNN(np.random, n_in, n_hidden, n_out)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstm:
-        model = recurrent.LSTM(np.random, 1, n_hidden, 1)
+        model = recurrent.LSTM(np.random, n_in, n_hidden, n_out)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstmp:
-        model = recurrent.LSTMP(np.random, 1, n_hidden, 1)
+        model = recurrent.LSTMP(np.random, n_in, n_hidden, n_out)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_gru:
-        model = recurrent.GRU(np.random, 1, n_hidden, 1)
+        model = recurrent.GRU(np.random, n_in, n_hidden, n_out)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 if __name__ == '__main__':

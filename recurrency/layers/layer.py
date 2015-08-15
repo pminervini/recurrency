@@ -19,9 +19,11 @@ class Layer(object):
         self.params = []
 
     def initialize(self, rng, size, tag='', type='glorot'):
-        if type in ['glorot']:
+        if type in ['glorot', 'glorotuniform']:
             bound = np.sqrt(6. / sum(size))
             V = utils.sharedX(rng.uniform(low=-bound, high=bound, size=size), name=tag)
+        elif type in ['zero', 'zeros']:
+            V = utils.shared_zeros(size, name=tag)
         else:
             raise ValueError('Unknown initialization: %s' % (type))
         return V

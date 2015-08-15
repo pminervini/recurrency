@@ -33,12 +33,12 @@ class SGD(Schedule):
 
         [1] https://en.wikipedia.org/wiki/Stochastic_gradient_descent
     '''
-    def __init__(self, params, rate=1.0, decay=0.95):
-        pass
+    def __init__(self, params, rate=1.0):
+        self.rate = rate
 
     def update(self, param, gradient, updates):
         # Update: x_t - eta * g_t
-        delta_x_t = - rate * gradient
+        delta_x_t = - self.rate * gradient
         updates[param] = param + delta_x_t
 
 
