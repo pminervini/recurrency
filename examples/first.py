@@ -17,7 +17,7 @@ import sys
 
 def experiment(model, length, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-6):
     np.random.seed(123)
-    
+
     x = T.matrix(dtype=theano.config.floatX)
     y, _ = model(x)
 
@@ -37,14 +37,14 @@ def experiment(model, length, optimizer='sgd', rate=0.1, decay=0.95, epsilon=1e-
 
 
 def main(argv):
-    is_rnn, is_lstm, is_lstmp = False, False, False
+    is_rnn, is_lstm, is_lstmp, is_gru = False, False, False, False
     optimizer, rate, decay, epsilon = 'momentum', 0.1, 0.95, 1e-6
     length, n_hidden = 10, 10
 
-    usage_str = ('Usage: %s [-h] [--rnn] [--lstm] [--lstmp] [--hidden=<hidden>] [--length=<n>] [--optimizer=<optimizer>] [--rate=<rate>] [--decay=<decay>] [--epsilon=<epsilon>]' % (sys.argv[0]))
+    usage_str = ('Usage: %s [-h] [--rnn] [--lstm] [--lstmp] [--gru] [--hidden=<hidden>] [--length=<n>] [--optimizer=<optimizer>] [--rate=<rate>] [--decay=<decay>] [--epsilon=<epsilon>]' % (sys.argv[0]))
 
     try:
-        opts, args = getopt.getopt(argv, 'h', ['rnn', 'lstm', 'lstmp', 'hidden=', 'length=', 'optimizer=', 'rate=', 'decay=', 'epsilon='])
+        opts, args = getopt.getopt(argv, 'h', ['rnn', 'lstm', 'lstmp', 'gru', 'hidden=', 'length=', 'optimizer=', 'rate=', 'decay=', 'epsilon='])
     except getopt.GetoptError:
         logging.warn(usage_str)
         sys.exit(2)
@@ -59,6 +59,8 @@ def main(argv):
             is_lstm = True
         elif opt == '--lstmp':
             is_lstmp = True
+        elif opt == '--gru':
+            is_gru = True
 
         elif opt == '--hidden':
             n_hidden = int(arg)
@@ -85,7 +87,9 @@ def main(argv):
     if is_lstmp:
         model = recurrent.LSTMP(np.random, 1, n_hidden, 1)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
-
+    if is_gru:
+        model = recurrent.GRU(np.random, 1, n_hidden, 1)
+        experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

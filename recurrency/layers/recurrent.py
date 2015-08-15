@@ -259,3 +259,90 @@ class LSTMP(layer.Layer):
                                                     outputs_info=self.sequences + [None], # corresponds to return type of fn
                                                     non_sequences=self.non_sequences)
         return y_vals, [h_vals, c_vals]
+
+
+
+class GRU(layer.Layer):
+    '''
+        Gated Recurrent Unit (GRU) Recurrent Neural Network, as described in [1].
+        Given an input sequence <x_1, .., x_t>, the output sequence <y_1, .., y_t> is calculated as follows:
+
+        z_t = σ(W_z x_t + U_z h_t-1)
+        r_t = σ(W_r x_t + U_r h_t-1)
+        ~h_t = tanh(W x_t + r_t * U h_t-1)
+        h_t = (1 - z_t) * h_t-1 + z_t * ~h_t
+        y_t = phi(W_hy h_t + b_y),
+
+        where σ() and phi() are element-wise non-linear functions.
+
+        [1] Cho, K. et al. - Learning phrase representations using RNN encoder-decoder for statistical machine translation. - arXiv:1406.1078
+    '''
+
+    def get_parameters(self, rng, n_in, n_out, n_z, n_r, n_t, n_h):
+
+        W_xz = self.initialize(rng, size=(n_in, n_z), tag='W_xz')
+        U_hz = self.initialize(rng, size=(n_h, n_z), tag='U_xz')
+        b_z = self.initialize(rng, size=(n_z,), tag='b_z')
+
+        W_xr = self.initialize(rng, size=(n_in, n_r), tag='W_xr')
+        U_hr = self.initialize(rng, size=(n_h, n_r), tag='U_hr')
+        b_r = self.initialize(rng, size=(n_r,), tag='b_r')
+
+        W_xt = self.initialize(rng, size=(n_in, n_t), tag='W_xt')
+        U_ht = self.initialize(rng, size=(n_h, n_t), tag='U_ht')
+
+        W_hy = self.initialize(rng, size=(n_h, n_out), tag='W_hy')
+        b_y = self.initialize(rng, size=(n_out,), tag='b_y')
+
+        z0 = utils.shared_zeros(n_z, name='z_0')
+        r0 = utils.shared_zeros(n_z, name='r_0')
+        h0 = utils.shared_zeros(n_z, name='h_0')
+        t0 = utils.shared_zeros(n_z, name='t_0')
+
+        return [W_xz, U_hz, b_z, W_xr, U_hr, b_r, W_xt, U_ht, W_hy, b_y], h0
+
+    # sequences: x_t
+    # prior results: h_t-1
+    # non-sequences: W_xz, U_hz, b_z, W_xr, U_hr, b_r, W_xt, U_ht, W_hy, b_y
+    def step(self, x_t, h_tm1, W_xz, U_hz, b_z, W_xr, U_hr, b_r, W_xt, U_ht, W_hy, b_y):
+
+        # z_t = sigma(W_xz x_t + U_hz h_t-1 + b_z)
+        z_t = self.sigma(theano.dot(x_t, W_xz) + theano.dot(h_tm1, U_hz) + b_z)
+
+        # r_t = sigma(W_xr x_t + U_hr h_t-1 + b_r)
+        r_t = self.sigma(theano.dot(x_t, W_xr) + theano.dot(h_tm1, U_hr) + b_r)
+
+        # ~h_t = g(W_xt x_t + r_t * U_ht h_t-1)
+        t_t = self.act(theano.dot(x_t, W_xt) + r_t * theano.dot(h_tm1, U_ht))
+
+        # h_t = (1 - z_t) * h_t-1 + z_t * ~h_t
+        h_t = (1. - z_t) * h_tm1 + z_t * t_t
+
+        # y_t = phi(W_hy h_t + b_y)
+        y_t = self.sigma(theano.dot(h_t, W_hy) + b_y)
+
+        return [h_t, y_t]
+
+    def __init__(self, rng, n_in, n_hidden, n_out):
+        super(GRU, self).__init__()
+
+        self.name = 'GRU(%i, %i, %i)' % (n_in, n_hidden, n_out)
+
+        self.act = T.nnet.sigmoid
+        self.sigma = lambda x : 1 / (1 + T.exp(-x))
+
+        n_z = n_r = n_t = n_hidden
+
+        self.non_sequences, h0 = self.get_parameters(rng, n_in, n_out, n_z, n_r, n_t, n_hidden)
+
+        self.sequences = [h0]
+
+        self.params += self.non_sequences
+
+    def __call__(self, x):
+        # hidden and outputs of the entire sequence
+        [h_vals, y_vals], _ = theano.scan(fn=self.step,
+                                                    sequences=dict(input=x, taps=[0]),
+                                                    outputs_info=self.sequences + [None], # corresponds to return type of fn
+                                                    non_sequences=self.non_sequences)
+        return y_vals, [h_vals]

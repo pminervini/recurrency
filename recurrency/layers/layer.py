@@ -18,12 +18,14 @@ class Layer(object):
     def __init__(self):
         self.params = []
 
-    def initialize(self, rng, size, tag):
-        bound = 6. / np.sqrt(sum(size))
-        V = utils.sharedX(rng.uniform(low=-bound, high=bound, size=size), name=tag)
+    def initialize(self, rng, size, tag='', type='glorot'):
+        if type in ['glorot']:
+            bound = np.sqrt(6. / sum(size))
+            V = utils.sharedX(rng.uniform(low=-bound, high=bound, size=size), name=tag)
+        else:
+            raise ValueError('Unknown initialization: %s' % (type))
         return V
 
-    # B x D
     @abstractmethod
     def __call__(self, x):
         pass
