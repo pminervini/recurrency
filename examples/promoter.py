@@ -96,16 +96,16 @@ def main(argv):
     n_in, n_out = 4, 1
 
     if is_rnn:
-        model = recurrent.RNN(np.random, n_in, n_hidden, n_out)
+        model = recurrent.RNN(np.random, n_in, n_hidden, n_out, act=T.nnet.sigmoid)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstm:
-        model = recurrent.LSTM(np.random, n_in, n_hidden, n_out)
+        model = recurrent.LSTM(np.random, n_in, n_hidden, n_out, act=T.nnet.sigmoid)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstmp:
-        model = recurrent.LSTMP(np.random, n_in, n_hidden, n_out)
+        model = recurrent.LSTMP(np.random, n_in, n_hidden, n_out, act=T.nnet.sigmoid)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_gru:
-        model = recurrent.GRU(np.random, n_in, n_hidden, n_out)
+        model = recurrent.GRU(np.random, n_in, n_hidden, n_out, act=T.nnet.sigmoid)
         experiment(model, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 

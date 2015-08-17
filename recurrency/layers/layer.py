@@ -20,6 +20,9 @@ class Layer(object):
 
     def initialize(self, rng, size, tag='', type='glorot'):
         if type in ['glorot', 'glorotuniform']:
+            '''
+                Glorot, X. et al. - Understanding the difficulty of training deep feedforward neural networks - AISTATS 2010
+            '''
             bound = np.sqrt(6. / sum(size))
             V = utils.sharedX(rng.uniform(low=-bound, high=bound, size=size), name=tag)
         elif type in ['zero', 'zeros']:

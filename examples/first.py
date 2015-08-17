@@ -5,6 +5,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 
+import recurrency.layers.activation as activation
 import recurrency.layers.recurrent as recurrent
 import recurrency.optimization.optimization as optimization
 
@@ -78,19 +79,22 @@ def main(argv):
         elif opt == '--epsilon':
             epsilon = float(arg)
 
+    # Memento: activation functions may make a huge difference.
+
     n_in, n_out = 1, 1
+    g, act = activation.Linear(), activation.Linear()
 
     if is_rnn:
-        model = recurrent.RNN(np.random, n_in, n_hidden, n_out)
+        model = recurrent.RNN(np.random, n_in, n_hidden, n_out, g=g, act=act)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstm:
-        model = recurrent.LSTM(np.random, n_in, n_hidden, n_out)
+        model = recurrent.LSTM(np.random, n_in, n_hidden, n_out, act=act)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstmp:
-        model = recurrent.LSTMP(np.random, n_in, n_hidden, n_out)
+        model = recurrent.LSTMP(np.random, n_in, n_hidden, n_out, act=act)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_gru:
-        model = recurrent.GRU(np.random, n_in, n_hidden, n_out)
+        model = recurrent.GRU(np.random, n_in, n_hidden, n_out, act=act)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 if __name__ == '__main__':

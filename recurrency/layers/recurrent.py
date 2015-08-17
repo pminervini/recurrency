@@ -6,21 +6,30 @@ import theano.tensor as T
 
 import recurrency.utils.utils as utils
 import recurrency.layers.layer as layer
+import recurrency.layers.activation as activation
 
 import logging
 
+"""
+    This module implements several Recurrent Neural Network architectures, by extending
+    the layer.Layer abstract class.
+
+    Note: the act() constructor parameter is the activation function used for the output variables y_t (e.g. softmax). By default it is the identity function.
+"""
+sigma, g, h = activation.Linear(), activation.Linear(), activation.Linear()
+act = activation.Linear()
 
 class RNN(layer.Layer):
     '''
         Fully connected Recurrent Neural Network (RNN), as described in [1].
         Given an input sequence <x_1, .., x_t>, the output sequence <y_1, .., y_t> is calculated as follows:
 
-        h_t = e(W_ih x_t + W_hh h_t-1 + bh),
-        y_t = g(W_ho h_t + b_o),
+        h_t = g(W_ih x_t + W_hh h_t-1 + bh),
+        y_t = act(W_ho h_t + b_o),
 
-        where e() and g() are element-wise non-linear functions.
+        where g() and act() are element-wise non-linear functions.
 
-        [1] Sak, H. et al. - Long short-term memory recurrent neural network architectures for large scale acoustic modeling. - INTERSPEECH 2014
+        [1] Martens, J. et al. - Learning Recurrent Neural Networks with Hessian-Free Optimization - ICML 2011
     '''
 
     def get_parameters(self, rng, n_in, n_hidden, n_out):
@@ -29,27 +38,26 @@ class RNN(layer.Layer):
         W_hh = self.initialize(rng, size=(n_hidden, n_hidden), tag='W_hh')
         W_ho = self.initialize(rng, size=(n_hidden, n_out), tag='W_ho')
         b_o = self.initialize(rng, size=(n_out,), tag='b_o')
-        h0 = utils.shared_zeros(n_hidden, name='h_0')
+        h0 = self.initialize(rng, size=(n_hidden,), tag='h_0', type='zero')
         return [W_ih, W_hh, b_h, W_ho, b_o], [h0]
 
     # sequences: x_t, prior results: h_tm1, non-sequences: W_ih, W_hh, W_ho, b_h
     def step(self, x_t, h_tm1, W_ih, W_hh, b_h, W_ho, b_o):
 
-        # h_t = e(W_ih x_t + W_hh h_tm1 + bh)
-        h_t = T.tanh(theano.dot(x_t, W_ih) + theano.dot(h_tm1, W_hh) + b_h)
+        # h_t = g(W_ih x_t + W_hh h_tm1 + bh)
+        h_t = self.g(theano.dot(x_t, W_ih) + theano.dot(h_tm1, W_hh) + b_h)
 
-        # y_t g(W_ho h_t + b_o)
+        # y_t = act(W_ho h_t + b_o)
         y_t = self.act(theano.dot(h_t, W_ho) + b_o)
 
         return [h_t, y_t]
 
-    def __init__(self, rng, n_in, n_hidden, n_out):
+    def __init__(self, rng, n_in, n_hidden, n_out, g=g, act=act):
         super(RNN, self).__init__()
         self.name = 'RNN(%i, %i, %i)' % (n_in, n_hidden, n_out)
 
-        self.act = T.nnet.sigmoid
+        self.g, self.act = g, act
         self.non_sequences, self.sequences = self.get_parameters(rng, n_in, n_hidden, n_out)
-
         self.params += self.non_sequences + self.sequences
 
     def __call__(self, x):
@@ -71,10 +79,10 @@ class LSTM(layer.Layer):
         f_t = σ(W_xf x_t + W_hf h_t-1 + W_cf c_t-1 + b_f),
         c_t = f_t * c_t-1 + i_t * g(W_xc x_t + W_hc h_t-1 + b_c),
         o_t = σ(W_xo x_t + W_ho h_t-1 + W_co c_t + b_o),
-        h_t = o_t * h(c_t),
-        y_t = phi(W_hy h_t + b_y),
+        h_t = o_t * h(c_t), (m_t in the article)
+        y_t = act(W_hy h_t + b_y),
 
-        where σ(), g(), h() and phi() are element-wise non-linear functions.
+        where σ(), g(), h() and act() are element-wise non-linear functions.
 
         [1] Sak, H. et al. - Long short-term memory recurrent neural network architectures for large scale acoustic modeling. - INTERSPEECH 2014
     '''
@@ -102,7 +110,7 @@ class LSTM(layer.Layer):
         W_hy = self.initialize(rng, size=(n_hidden, n_out), tag='W_hy')
         b_y = self.initialize(rng, size=(n_out,), tag='b_y')
 
-        c0 = utils.shared_zeros(n_hidden, name='c_0')
+        c0 = self.initialize(rng, size=(n_hidden,), tag='c_0', type='zero')
 
         return [W_xi, W_hi, W_ci, b_i, W_xf, W_hf, W_cf, b_f, W_xc, W_hc, b_c, W_xo, W_ho, W_co, b_o, W_hy, b_y], c0
 
@@ -118,32 +126,31 @@ class LSTM(layer.Layer):
         f_t = self.sigma(theano.dot(x_t, W_xf) + theano.dot(h_tm1, W_hf) + theano.dot(c_tm1, W_cf) + b_f)
 
         # c_t = f_t * c_tm1 + i_t * g(W_xc x_t + W_hc h_tm1 + b_c)
-        c_t = f_t * c_tm1 + i_t * self.act(theano.dot(x_t, W_xc) + theano.dot(h_tm1, W_hc) + b_c)
+        c_t = f_t * c_tm1 + i_t * self.g(theano.dot(x_t, W_xc) + theano.dot(h_tm1, W_hc) + b_c)
 
         # o_t = sigma(W_xo x_t + W_ho h_tm1 + W_co c_t + b_o)
         o_t = self.sigma(theano.dot(x_t, W_xo) + theano.dot(h_tm1, W_ho) + theano.dot(c_t, W_co) + b_o)
 
         # h_t = o_t * h(c_t)
-        h_t = o_t * self.act(c_t)
+        h_t = o_t * self.h(c_t)
 
-        # y_t = phi(W_hy h_t + b_y)
-        y_t = self.sigma(theano.dot(h_t, W_hy) + b_y)
+        # y_t = act(W_hy h_t + b_y)
+        y_t = self.act(theano.dot(h_t, W_hy) + b_y)
 
         return [h_t, c_t, y_t]
 
-    def __init__(self, rng, n_in, n_hidden, n_out):
+    def __init__(self, rng, n_in, n_hidden, n_out, sigma=sigma, g=g, h=h, act=act):
         super(LSTM, self).__init__()
 
         self.name = 'LSTM(%i, %i, %i)' % (n_in, n_hidden, n_out)
-
-        self.act = T.nnet.sigmoid
-        self.sigma = lambda x : 1 / (1 + T.exp(-x))
+        self.sigma, self.g, self.h = sigma, g, h
+        self.act = act
 
         n_i = n_c = n_o = n_f = n_hidden
 
         self.non_sequences, c0 = self.get_parameters(rng, n_in, n_out, n_i, n_c, n_o, n_f, n_hidden)
 
-        h0 = T.tanh(c0)
+        h0 = self.h(c0)
         self.sequences = [h0, c0]
 
         self.params += self.non_sequences + [c0]
@@ -169,9 +176,9 @@ class LSTMP(layer.Layer):
         o_t = σ(W_xo x_t + W_ho h_t-1 + W_co c_t + b_o),
         h_t = o_t * h(c_t),
         r_t = W_hr h_t,
-        y_t = phi(W_ry r_t + b_y)
+        y_t = act(W_ry r_t + b_y)
 
-        where σ(), g(), h() and phi() are element-wise non-linear functions.
+        where σ(), g(), h() and act() are element-wise non-linear functions.
 
         [1] Sak, H. et al. - Long short-term memory recurrent neural network architectures for large scale acoustic modeling. - INTERSPEECH 2014
     '''
@@ -202,7 +209,7 @@ class LSTMP(layer.Layer):
 
         b_y = self.initialize(rng, size=(n_out,), tag='b_y')
 
-        c0 = utils.shared_zeros(n_hidden, name='c_0')
+        c0 = self.initialize(rng, size=(n_hidden,), tag='c_0', type='zero')
 
         return [W_xi, W_hi, W_ci, b_i, W_xf, W_hf, W_cf, b_f, W_xc, W_hc, b_c, W_xo, W_ho, W_co, b_o, W_hr, W_ry, b_y], c0
 
@@ -219,29 +226,29 @@ class LSTMP(layer.Layer):
         f_t = self.sigma(theano.dot(x_t, W_xf) + theano.dot(h_tm1, W_hf) + theano.dot(c_tm1, W_cf) + b_f)
 
         # c_t = f_t * c_tm1 + i_t * g(W_xc x_t + W_hc h_tm1 + b_c)
-        c_t = f_t * c_tm1 + i_t * self.act(theano.dot(x_t, W_xc) + theano.dot(h_tm1, W_hc) + b_c)
+        c_t = f_t * c_tm1 + i_t * self.g(theano.dot(x_t, W_xc) + theano.dot(h_tm1, W_hc) + b_c)
 
         # o_t = sigma(W_xo x_t + W_ho h_tm1 + W_co c_t + b_o)
         o_t = self.sigma(theano.dot(x_t, W_xo) + theano.dot(h_tm1, W_ho) + theano.dot(c_t, W_co) + b_o)
 
         # h_t = o_t * h(c_t)
-        h_t = o_t * self.act(c_t)
+        h_t = o_t * self.h(c_t)
 
         # r_t = W_hr h_t
         r_t = theano.dot(h_t, W_hr)
 
-        # y_t = phi(W_ry r_t + b_y)
-        y_t = self.sigma(theano.dot(r_t, W_ry) + b_y)
+        # y_t = act(W_ry r_t + b_y)
+        y_t = self.act(theano.dot(r_t, W_ry) + b_y)
 
         return [h_t, c_t, y_t]
 
-    def __init__(self, rng, n_in, n_hidden, n_out):
+    def __init__(self, rng, n_in, n_hidden, n_out, sigma=sigma, g=g, h=h, act=act):
         super(LSTMP, self).__init__()
 
         self.name = 'LSTMP(%i, %i, %i)' % (n_in, n_hidden, n_out)
 
-        self.act = T.nnet.sigmoid
-        self.sigma = lambda x : 1 / (1 + T.exp(-x))
+        self.sigma, self.g, self.h = sigma, g, h
+        self.act = act
 
         n_i = n_c = n_r = n_o = n_f = n_hidden
 
@@ -294,10 +301,7 @@ class GRU(layer.Layer):
         W_hy = self.initialize(rng, size=(n_h, n_out), tag='W_hy')
         b_y = self.initialize(rng, size=(n_out,), tag='b_y')
 
-        z0 = utils.shared_zeros(n_z, name='z_0')
-        r0 = utils.shared_zeros(n_z, name='r_0')
-        h0 = utils.shared_zeros(n_z, name='h_0')
-        t0 = utils.shared_zeros(n_z, name='t_0')
+        h0 = self.initialize(rng, size=(n_h,), tag='h_0', type='zero')
 
         return [W_xz, U_hz, b_z, W_xr, U_hr, b_r, W_xt, U_ht, W_hy, b_y], h0
 

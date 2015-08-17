@@ -35,6 +35,14 @@ class Tanh(layer.Layer):
     def __call__(self, x):
         return T.nnet.tanh(x)
 
+class Linear(layer.Layer):
+
+    def __init__(self):
+        super(Linear, self).__init__()
+
+    def __call__(self, x):
+        return x
+
 class PReLU(layer.Layer):
     '''
         Parametric Rectified Linear Unit (PReLU) [1]

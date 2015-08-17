@@ -7,7 +7,10 @@ Maintainer - [Pasquale Minervini](http://github.com/pminervini)
 ## References
 
 Recurrent Neural Networks, (Projected) Long Short-Term Mememory Networks:
-- Sak, H. et al. - [Long Short-Term Memory Based Recurrent Neural Network Architectures for Large Vocabulary Speech Recognition](http://arxiv.org/abs/1402.1128) - INTERSPEECH 2014
+- Martens, J. et al. - [Learning Recurrent Neural Networks with Hessian-Free Optimization](http://www.icml-2011.org/papers/532_icmlpaper.pdf) - ICML 2011
+- Sak, H. et al. - [Long Short-Term Memory Recurrent Neural Network Architectures
+for Large Scale Acoustic Modeling](https://wiki.inf.ed.ac.uk/twiki/pub/CSTR/ListenTerm1201415/sak2.pdf) - INTERSPEECH 2014
+- Sak, H. et al. - [Long Short-Term Memory Based Recurrent Neural Network Architectures for Large Vocabulary Speech Recognition](http://arxiv.org/abs/1402.1128) - 	arXiv:1402.1128
 
 Gated Recurrent Units, Gated-Feedback Recurrent Neural Networks:
 - Chung, J. et al. - [Empirical Evaluation of Gated Recurrent Neural Networks on Sequence Modeling](http://arxiv.org/abs/1412.3555) - arXiv:1412.3555
