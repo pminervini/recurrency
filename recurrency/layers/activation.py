@@ -12,36 +12,39 @@ import logging
 
 
 class SoftMax(layer.Layer):
-
     def __init__(self):
         super(SoftMax, self).__init__()
-
     def __call__(self, x):
         return T.nnet.softmax(x)
 
 class Sigmoid(layer.Layer):
-
     def __init__(self):
         super(Sigmoid, self).__init__()
-
     def __call__(self, x):
         return T.nnet.sigmoid(x)
 
 class Tanh(layer.Layer):
-
     def __init__(self):
         super(Tanh, self).__init__()
-
     def __call__(self, x):
-        return T.nnet.tanh(x)
+        return T.tanh(x)
 
 class Linear(layer.Layer):
-
     def __init__(self):
         super(Linear, self).__init__()
-
     def __call__(self, x):
         return x
+
+class ReLU(layer.Layer):
+    '''
+        Rectified Linear Units (ReLU) [1]
+
+        [1] Glorot, X. et al. - Deep sparse rectifier neural networks - AISTATS 2011
+    '''
+    def __init__(self):
+        super(ReLU, self).__init__()
+    def __call__(self, x):
+        return x * (x > 0)
 
 class PReLU(layer.Layer):
     '''

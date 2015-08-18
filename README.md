@@ -4,6 +4,28 @@ A framework for experimenting with Recurrent Neural Network architectures.
 
 Maintainer - [Pasquale Minervini](http://github.com/pminervini)
 
+## Sample Usage
+
+Toy task: memorize the first element of a sequence of 30 binary elements, training a simple RNN with 10 hidden units using AdaGrad
+
+recurrency$ PYTHONPATH='.' ./examples/first.py --rnn --optimizer=adagrad --rate=0.1 --length=30 --hidden=10
+INFO:root:[RNN(1, 10, 1) 0]	2016.70841816
+INFO:root:[RNN(1, 10, 1) 1]	510.591709843
+INFO:root:[RNN(1, 10, 1) 2]	480.646542102
+INFO:root:[RNN(1, 10, 1) 3]	410.613361412
+INFO:root:[RNN(1, 10, 1) 4]	360.961450817
+INFO:root:[RNN(1, 10, 1) 5]	311.325939509
+INFO:root:[RNN(1, 10, 1) 6]	269.729312314
+INFO:root:[RNN(1, 10, 1) 7]	228.864181037
+INFO:root:[RNN(1, 10, 1) 8]	187.205097576
+INFO:root:[RNN(1, 10, 1) 9]	145.889039444
+INFO:root:[RNN(1, 10, 1) 10]	115.774753624
+INFO:root:[RNN(1, 10, 1) 11]	96.9229396861
+INFO:root:[RNN(1, 10, 1) 12]	78.2241894971
+INFO:root:[RNN(1, 10, 1) 13]	59.8859616697
+INFO:root:[RNN(1, 10, 1) 14]	48.3193670917
+
+
 ## References
 
 Recurrent Neural Networks, (Projected) Long Short-Term Mememory Networks:

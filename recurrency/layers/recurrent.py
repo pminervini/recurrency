@@ -37,7 +37,7 @@ class RNN(layer.Layer):
         W_ih = self.initialize(rng, size=(n_in, n_hidden), tag='W_ih')
         W_hh = self.initialize(rng, size=(n_hidden, n_hidden), tag='W_hh', type='le2015')
         W_ho = self.initialize(rng, size=(n_hidden, n_out), tag='W_ho')
-        b_o = self.initialize(rng, size=(n_out,), tag='b_o')
+        b_o = self.initialize(rng, size=(n_out,), tag='b_o', type='zero')
         h0 = self.initialize(rng, size=(n_hidden,), tag='h_0', type='zero')
         return [W_ih, W_hh, b_h, W_ho, b_o], [h0]
 
@@ -91,24 +91,24 @@ class LSTM(layer.Layer):
         W_xi = self.initialize(rng, size=(n_in, n_i), tag='W_xi')
         W_hi = self.initialize(rng, size=(n_hidden, n_i), tag='W_hi')
         W_ci = self.initialize(rng, size=(n_c, n_i), tag='W_ci')
-        b_i = self.initialize(rng, size=(n_i,), tag='b_i')
+        b_i = self.initialize(rng, size=(n_i,), tag='b_i', type='zero')
 
         W_xf = self.initialize(rng, size=(n_in, n_f), tag='W_xf')
         W_hf = self.initialize(rng, size=(n_hidden, n_f), tag='W_hf')
         W_cf = self.initialize(rng, size=(n_c, n_f), tag='W_cf')
-        b_f = self.initialize(rng, size=(n_f,), tag='b_f')
+        b_f = self.initialize(rng, size=(n_f,), tag='b_f', type='zero')
 
         W_xc = self.initialize(rng, size=(n_in, n_c), tag='W_xc')
         W_hc = self.initialize(rng, size=(n_hidden, n_c), tag='W_hc')
-        b_c = self.initialize(rng, size=(n_c,), tag='b_c')
+        b_c = self.initialize(rng, size=(n_c,), tag='b_c', type='zero')
 
         W_xo = self.initialize(rng, size=(n_in, n_o), tag='W_xo')
         W_ho = self.initialize(rng, size=(n_hidden, n_o), tag='W_ho')
         W_co = self.initialize(rng, size=(n_c, n_o), tag='W_co')
-        b_o = self.initialize(rng, size=(n_o,), tag='b_o')
+        b_o = self.initialize(rng, size=(n_o,), tag='b_o', type='zero')
 
         W_hy = self.initialize(rng, size=(n_hidden, n_out), tag='W_hy')
-        b_y = self.initialize(rng, size=(n_out,), tag='b_y')
+        b_y = self.initialize(rng, size=(n_out,), tag='b_y', type='zero')
 
         c0 = self.initialize(rng, size=(n_hidden,), tag='c_0', type='zero')
 
@@ -188,26 +188,26 @@ class LSTMP(layer.Layer):
         W_xi = self.initialize(rng, size=(n_in, n_i), tag='W_xi')
         W_hi = self.initialize(rng, size=(n_hidden, n_i), tag='W_hi')
         W_ci = self.initialize(rng, size=(n_c, n_i), tag='W_ci')
-        b_i = self.initialize(rng, size=(n_i,), tag='b_i')
+        b_i = self.initialize(rng, size=(n_i,), tag='b_i', type='zero')
 
         W_xf = self.initialize(rng, size=(n_in, n_f), tag='W_xf')
         W_hf = self.initialize(rng, size=(n_hidden, n_f), tag='W_hf')
         W_cf = self.initialize(rng, size=(n_c, n_f), tag='W_cf')
-        b_f = self.initialize(rng, size=(n_f,), tag='b_f')
+        b_f = self.initialize(rng, size=(n_f,), tag='b_f', type='zero')
 
         W_xc = self.initialize(rng, size=(n_in, n_c), tag='W_xc')
         W_hc = self.initialize(rng, size=(n_hidden, n_c), tag='W_hc')
-        b_c = self.initialize(rng, size=(n_c,), tag='b_c')
+        b_c = self.initialize(rng, size=(n_c,), tag='b_c', type='zero')
 
         W_xo = self.initialize(rng, size=(n_in, n_o), tag='W_xo')
         W_ho = self.initialize(rng, size=(n_hidden, n_o), tag='W_ho')
         W_co = self.initialize(rng, size=(n_c, n_o), tag='W_co')
-        b_o = self.initialize(rng, size=(n_o,), tag='b_o')
+        b_o = self.initialize(rng, size=(n_o,), tag='b_o', type='zero')
 
         W_hr = self.initialize(rng, size=(n_hidden, n_r), tag='W_hr')
         W_ry = self.initialize(rng, size=(n_r, n_out), tag='W_ry')
 
-        b_y = self.initialize(rng, size=(n_out,), tag='b_y')
+        b_y = self.initialize(rng, size=(n_out,), tag='b_y', type='zero')
 
         c0 = self.initialize(rng, size=(n_hidden,), tag='c_0', type='zero')
 
@@ -289,17 +289,17 @@ class GRU(layer.Layer):
 
         W_xz = self.initialize(rng, size=(n_in, n_z), tag='W_xz')
         U_hz = self.initialize(rng, size=(n_h, n_z), tag='U_xz')
-        b_z = self.initialize(rng, size=(n_z,), tag='b_z')
+        b_z = self.initialize(rng, size=(n_z,), tag='b_z', type='zero')
 
         W_xr = self.initialize(rng, size=(n_in, n_r), tag='W_xr')
         U_hr = self.initialize(rng, size=(n_h, n_r), tag='U_hr')
-        b_r = self.initialize(rng, size=(n_r,), tag='b_r')
+        b_r = self.initialize(rng, size=(n_r,), tag='b_r', type='zero')
 
         W_xt = self.initialize(rng, size=(n_in, n_t), tag='W_xt')
         U_ht = self.initialize(rng, size=(n_h, n_t), tag='U_ht')
 
         W_hy = self.initialize(rng, size=(n_h, n_out), tag='W_hy')
-        b_y = self.initialize(rng, size=(n_out,), tag='b_y')
+        b_y = self.initialize(rng, size=(n_out,), tag='b_y', type='zero')
 
         h0 = self.initialize(rng, size=(n_h,), tag='h_0', type='zero')
 
@@ -322,8 +322,8 @@ class GRU(layer.Layer):
         # h_t = (1 - z_t) * h_t-1 + z_t * ~h_t
         h_t = (1. - z_t) * h_tm1 + z_t * t_t
 
-        # y_t = phi(W_hy h_t + b_y)
-        y_t = self.sigma(theano.dot(h_t, W_hy) + b_y)
+        # y_t = act(W_hy h_t + b_y)
+        y_t = self.act(theano.dot(h_t, W_hy) + b_y)
 
         return [h_t, y_t]
 

@@ -85,8 +85,8 @@ def main(argv):
     #act = activation.Sigmoid()
     act = activation.Linear()
 
-    #sigma, g, h = activation.Sigmoid(), activation.Sigmoid(), activation.Sigmoid()
-    sigma, g, h = activation.Linear(), activation.Linear(), activation.Linear()
+    sigma, g, h = activation.Sigmoid(), activation.ReLU(), activation.ReLU()
+    #sigma, g, h = activation.Linear(), activation.Linear(), activation.Linear()
 
     if is_rnn:
         model = recurrent.RNN(np.random, n_in, n_hidden, n_out, g=g, act=act)
