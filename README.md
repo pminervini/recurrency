@@ -6,8 +6,10 @@ Maintainer - [Pasquale Minervini](http://github.com/pminervini)
 
 ## Sample Usage
 
-Toy task: memorize the first element of a sequence of 30 binary elements, training a simple RNN with 10 hidden units using AdaGrad
+Toy task - memorize the first element of a sequence of 30 binary elements, training a simple RNN with 10 hidden units using AdaGrad:
 
+
+```
 recurrency$ PYTHONPATH='.' ./examples/first.py --rnn --optimizer=adagrad --rate=0.1 --length=30 --hidden=10
 INFO:root:[RNN(1, 10, 1) 0]	2016.70841816
 INFO:root:[RNN(1, 10, 1) 1]	510.591709843
@@ -24,6 +26,7 @@ INFO:root:[RNN(1, 10, 1) 11]	96.9229396861
 INFO:root:[RNN(1, 10, 1) 12]	78.2241894971
 INFO:root:[RNN(1, 10, 1) 13]	59.8859616697
 INFO:root:[RNN(1, 10, 1) 14]	48.3193670917
+```
 
 
 ## References
