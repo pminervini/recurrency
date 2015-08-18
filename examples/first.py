@@ -79,22 +79,26 @@ def main(argv):
         elif opt == '--epsilon':
             epsilon = float(arg)
 
-    # Memento: activation functions may make a huge difference.
+    # Memento: non-linearities may make a huge difference.
 
     n_in, n_out = 1, 1
-    g, act = activation.Linear(), activation.Linear()
+    #act = activation.Sigmoid()
+    act = activation.Linear()
+
+    #sigma, g, h = activation.Sigmoid(), activation.Sigmoid(), activation.Sigmoid()
+    sigma, g, h = activation.Linear(), activation.Linear(), activation.Linear()
 
     if is_rnn:
         model = recurrent.RNN(np.random, n_in, n_hidden, n_out, g=g, act=act)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstm:
-        model = recurrent.LSTM(np.random, n_in, n_hidden, n_out, act=act)
+        model = recurrent.LSTM(np.random, n_in, n_hidden, n_out, sigma=sigma, g=g, h=h, act=act)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_lstmp:
-        model = recurrent.LSTMP(np.random, n_in, n_hidden, n_out, act=act)
+        model = recurrent.LSTMP(np.random, n_in, n_hidden, n_out, sigma=sigma, g=g, h=h, act=act)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
     if is_gru:
-        model = recurrent.GRU(np.random, n_in, n_hidden, n_out, act=act)
+        model = recurrent.GRU(np.random, n_in, n_hidden, n_out, sigma=sigma, g=g, act=act)
         experiment(model, length, optimizer=optimizer, rate=rate, decay=decay, epsilon=epsilon)
 
 if __name__ == '__main__':

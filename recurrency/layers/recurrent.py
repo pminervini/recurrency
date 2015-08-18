@@ -16,7 +16,7 @@ import logging
 
     Note: the act() constructor parameter is the activation function used for the output variables y_t (e.g. softmax). By default it is the identity function.
 """
-sigma, g, h = activation.Linear(), activation.Linear(), activation.Linear()
+sigma, g, h = activation.Sigmoid(), activation.Sigmoid(), activation.Sigmoid()
 act = activation.Linear()
 
 class RNN(layer.Layer):
@@ -35,7 +35,7 @@ class RNN(layer.Layer):
     def get_parameters(self, rng, n_in, n_hidden, n_out):
         b_h = self.initialize(rng, size=(n_hidden,), tag='b_h')
         W_ih = self.initialize(rng, size=(n_in, n_hidden), tag='W_ih')
-        W_hh = self.initialize(rng, size=(n_hidden, n_hidden), tag='W_hh')
+        W_hh = self.initialize(rng, size=(n_hidden, n_hidden), tag='W_hh', type='le2015')
         W_ho = self.initialize(rng, size=(n_hidden, n_out), tag='W_ho')
         b_o = self.initialize(rng, size=(n_out,), tag='b_o')
         h0 = self.initialize(rng, size=(n_hidden,), tag='h_0', type='zero')
@@ -63,7 +63,7 @@ class RNN(layer.Layer):
     def __call__(self, x):
         # hidden and outputs of the entire sequence
         [h_vals, y_vals], _ = theano.scan(fn=self.step,
-                                            sequences=dict(input=x, taps=[0]),
+                                            sequences={'input': x, 'taps': [0]},
                                             outputs_info=self.sequences + [None], # initialiation
                                             non_sequences=self.non_sequences) # unchanging variables
         return y_vals, [h_vals]
@@ -158,7 +158,7 @@ class LSTM(layer.Layer):
     def __call__(self, x):
         # hidden and outputs of the entire sequence
         [h_vals, c_vals, y_vals], _ = theano.scan(fn=self.step,
-                                                    sequences=dict(input=x, taps=[0]),
+                                                    sequences={'input': x, 'taps': [0]},
                                                     outputs_info=self.sequences + [None], # corresponds to return type of fn
                                                     non_sequences=self.non_sequences)
         return y_vals, [h_vals, c_vals]
@@ -262,7 +262,7 @@ class LSTMP(layer.Layer):
     def __call__(self, x):
         # hidden and outputs of the entire sequence
         [h_vals, c_vals, y_vals], _ = theano.scan(fn=self.step,
-                                                    sequences=dict(input=x, taps=[0]),
+                                                    sequences={'input': x, 'taps': [0]},
                                                     outputs_info=self.sequences + [None], # corresponds to return type of fn
                                                     non_sequences=self.non_sequences)
         return y_vals, [h_vals, c_vals]
@@ -276,9 +276,9 @@ class GRU(layer.Layer):
 
         z_t = σ(W_z x_t + U_z h_t-1)
         r_t = σ(W_r x_t + U_r h_t-1)
-        ~h_t = tanh(W x_t + r_t * U h_t-1)
+        ~h_t = g(W x_t + r_t * U h_t-1)
         h_t = (1 - z_t) * h_t-1 + z_t * ~h_t
-        y_t = phi(W_hy h_t + b_y),
+        y_t = act(W_hy h_t + b_y),
 
         where σ() and phi() are element-wise non-linear functions.
 
@@ -303,7 +303,7 @@ class GRU(layer.Layer):
 
         h0 = self.initialize(rng, size=(n_h,), tag='h_0', type='zero')
 
-        return [W_xz, U_hz, b_z, W_xr, U_hr, b_r, W_xt, U_ht, W_hy, b_y], h0
+        return [W_xz, U_hz, b_z, W_xr, U_hr, b_r, W_xt, U_ht, W_hy, b_y], [h0]
 
     # sequences: x_t
     # prior results: h_t-1
@@ -317,7 +317,7 @@ class GRU(layer.Layer):
         r_t = self.sigma(theano.dot(x_t, W_xr) + theano.dot(h_tm1, U_hr) + b_r)
 
         # ~h_t = g(W_xt x_t + r_t * U_ht h_t-1)
-        t_t = self.act(theano.dot(x_t, W_xt) + r_t * theano.dot(h_tm1, U_ht))
+        t_t = self.g(theano.dot(x_t, W_xt) + r_t * theano.dot(h_tm1, U_ht))
 
         # h_t = (1 - z_t) * h_t-1 + z_t * ~h_t
         h_t = (1. - z_t) * h_tm1 + z_t * t_t
@@ -327,26 +327,24 @@ class GRU(layer.Layer):
 
         return [h_t, y_t]
 
-    def __init__(self, rng, n_in, n_hidden, n_out):
+    def __init__(self, rng, n_in, n_hidden, n_out, sigma=sigma, g=g, act=act):
         super(GRU, self).__init__()
 
         self.name = 'GRU(%i, %i, %i)' % (n_in, n_hidden, n_out)
 
-        self.act = T.nnet.sigmoid
-        self.sigma = lambda x : 1 / (1 + T.exp(-x))
+        self.sigma, self.g = sigma, g
+        self.act = act
 
         n_z = n_r = n_t = n_hidden
 
-        self.non_sequences, h0 = self.get_parameters(rng, n_in, n_out, n_z, n_r, n_t, n_hidden)
-
-        self.sequences = [h0]
+        self.non_sequences, self.sequences = self.get_parameters(rng, n_in, n_out, n_z, n_r, n_t, n_hidden)
 
         self.params += self.non_sequences
 
     def __call__(self, x):
         # hidden and outputs of the entire sequence
         [h_vals, y_vals], _ = theano.scan(fn=self.step,
-                                                    sequences=dict(input=x, taps=[0]),
+                                                    sequences={'input': x, 'taps': [0]},
                                                     outputs_info=self.sequences + [None], # corresponds to return type of fn
                                                     non_sequences=self.non_sequences)
         return y_vals, [h_vals]
