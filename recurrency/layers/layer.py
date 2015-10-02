@@ -36,6 +36,8 @@ class Layer(object):
             V = utils.sharedX(value, name=tag)
         elif type in ['zero', 'zeros']:
             V = utils.shared_zeros(size, name=tag)
+        elif type in ['one', 'ones']:
+            V = utils.shared_ones(size, name=tag)
         else:
             raise ValueError('Unknown initialization: %s' % (type))
         return V

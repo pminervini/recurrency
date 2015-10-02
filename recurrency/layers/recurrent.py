@@ -6,7 +6,9 @@ import theano.tensor as T
 
 import recurrency.utils.utils as utils
 import recurrency.layers.layer as layer
+
 import recurrency.layers.activation as activation
+import recurrency.layers.noise as noise
 
 import logging
 
@@ -19,7 +21,21 @@ import logging
 sigma, g, h = activation.Sigmoid(), activation.Sigmoid(), activation.Sigmoid()
 act = activation.Linear()
 
-class RNN(layer.Layer):
+class RecurrentLayer(layer.Layer):
+    '''
+        Abstract class for Recurrent Neural Network layers.
+    '''
+    def __init__(self):
+        super(RecurrentLayer, self).__init__()
+        self.params += []
+
+    def __call__(self, x):
+        # Input is provided as (n_batch, n_time_steps, n_features): since theano.scan iterates
+        # over the first dimension, we dimshuffle to (n_time_steps, n_batch, n_features)
+        x = x.dimshuffle(1, 0, 2)
+        return x
+
+class RNN(RecurrentLayer):
     '''
         Fully connected Recurrent Neural Network (RNN), as described in [1].
         Given an input sequence <x_1, .., x_t>, the output sequence <y_1, .., y_t> is calculated as follows:
@@ -45,34 +61,154 @@ class RNN(layer.Layer):
     def step(self, x_t, h_tm1, W_ih, W_hh, b_h, W_ho, b_o):
 
         # h_t = g(W_ih x_t + W_hh h_tm1 + bh)
+
+        ### Does not work on recurrent layer, see http://arxiv.org/pdf/1311.0701v7.pdf
         h_t = self.g(theano.dot(x_t, W_ih) + theano.dot(h_tm1, W_hh) + b_h)
+
+        # y_t = act(W_ho h_t + b_o)
+
+        ### y_t = self.act(theano.dot(h_t, W_ho) + b_o)
+        y_t = self.act(theano.dot(h_t, self.mask(W_ho, inference=self.inference)) + self.mask(b_o, inference=self.inference))
+
+        return [h_t, y_t]
+
+    def __init__(self, rng, n_in, n_hidden, n_out, g=g, act=act, p=.0):
+        super(RNN, self).__init__()
+
+        self.name = 'RNN(%i, %i, %i)' % (n_in, n_hidden, n_out)
+        self.n_hidden = n_hidden
+        self.g, self.act = g, act
+
+        self.params += self.g.params + self.act.params
+
+        self.mask = noise.BinomialDropout(p=p)
+        #self.mask = noise.Null()
+
+        self.non_sequences, self.sequences = self.get_parameters(rng, n_in, n_hidden, n_out)
+        self.params += self.non_sequences + self.sequences
+
+    def __call__(self, x, inference=False):
+        x = super(RNN, self).__call__(x)
+        self.inference = inference
+        # hidden and outputs of the entire sequence
+        [h_vals, y_vals], _ = theano.scan(fn=self.step,
+                                            sequences={'input': x, 'taps': [0]},
+                                            outputs_info=[T.alloc(self.sequences, x.shape[1], self.n_hidden), None], # initialiation
+                                            non_sequences=self.non_sequences) # unchanging variables
+        return y_vals, [h_vals]
+
+class Mutation1(RecurrentLayer):
+    '''
+        Replace Translation with Scaling
+    '''
+
+    def get_parameters(self, rng, n_in, n_hidden, n_out):
+        b_h = self.initialize(rng, size=(n_hidden,), tag='b_h')
+        W_ih = self.initialize(rng, size=(n_in, n_hidden), tag='W_ih')
+        W_hh = self.initialize(rng, size=(n_hidden, n_hidden), tag='W_hh', type='le2015')
+        W_ho = self.initialize(rng, size=(n_hidden, n_out), tag='W_ho')
+        b_o = self.initialize(rng, size=(n_out,), tag='b_o', type='zero')
+        h0 = self.initialize(rng, size=(n_hidden,), tag='h_0', type='zero')
+        return [W_ih, W_hh, b_h, W_ho, b_o], [h0]
+
+    # sequences: x_t, prior results: h_tm1, non-sequences: W_ih, W_hh, W_ho, b_h
+    def step(self, x_t, h_tm1, W_ih, W_hh, b_h, W_ho, b_o):
+
+        # h_t = g(W_ih x_t * (W_hh h_tm1 + bh))
+        if self.inference is True:
+            h_t = self.g(theano.dot(x_t, W_ih) * (theano.dot(h_tm1, W_hh) + b_h))
+        else:
+            # DropConnect variant
+            h_t = self.g(theano.dot(x_t, W_ih) * (theano.dot(h_tm1, self.mask(W_hh, inference=self.inference)) + self.mask(b_h, inference=self.inference)))
 
         # y_t = act(W_ho h_t + b_o)
         y_t = self.act(theano.dot(h_t, W_ho) + b_o)
 
         return [h_t, y_t]
 
-    def __init__(self, rng, n_in, n_hidden, n_out, g=g, act=act):
-        super(RNN, self).__init__()
-        self.name = 'RNN(%i, %i, %i)' % (n_in, n_hidden, n_out)
+    def __init__(self, rng, n_in, n_hidden, n_out, g=g, act=act, p=.0):
+        super(Mutation1, self).__init__()
 
+        self.name = 'Mutation1(%i, %i, %i)' % (n_in, n_hidden, n_out)
+        self.n_hidden = n_hidden
         self.g, self.act = g, act
+
+        self.params += self.g.params + self.act.params
+
+        self.mask = noise.BinomialDropout(p=p)
+        #self.mask = noise.Null()
+
         self.non_sequences, self.sequences = self.get_parameters(rng, n_in, n_hidden, n_out)
         self.params += self.non_sequences + self.sequences
 
-    def __call__(self, x):
+    def __call__(self, x, inference=False):
+        x = super(Mutation1, self).__call__(x)
+        self.inference = inference
         # hidden and outputs of the entire sequence
         [h_vals, y_vals], _ = theano.scan(fn=self.step,
                                             sequences={'input': x, 'taps': [0]},
-                                            outputs_info=self.sequences + [None], # initialiation
+                                            outputs_info=[T.alloc(self.sequences, x.shape[1], self.n_hidden), None], # initialiation
                                             non_sequences=self.non_sequences) # unchanging variables
         return y_vals, [h_vals]
 
-
-
-class LSTM(layer.Layer):
+class Mutation2(RecurrentLayer):
     '''
-        Long Short-Term Meory (LSTM) Recurrent Neural Network, as described in [1].
+        Replace Translation with Scaling
+        Less parameters: Scaling instead of Affine Projection
+    '''
+
+    def get_parameters(self, rng, n_in, n_hidden, n_out):
+        b_h = self.initialize(rng, size=(n_hidden,), tag='b_h')
+        W_ih = self.initialize(rng, size=(n_in, n_hidden), tag='W_ih')
+        W_hh = self.initialize(rng, size=(n_hidden,), tag='W_hh', type='one')
+        W_ho = self.initialize(rng, size=(n_hidden, n_out), tag='W_ho')
+        b_o = self.initialize(rng, size=(n_out,), tag='b_o', type='zero')
+        h0 = self.initialize(rng, size=(n_hidden,), tag='h_0', type='zero')
+        return [W_ih, W_hh, b_h, W_ho, b_o], [h0]
+
+    # sequences: x_t, prior results: h_tm1, non-sequences: W_ih, W_hh, W_ho, b_h
+    def step(self, x_t, h_tm1, W_ih, W_hh, b_h, W_ho, b_o):
+
+        # h_t = g(W_ih x_t * (W_hh h_tm1 + bh))
+        if self.inference is True:
+            h_t = self.g(theano.dot(x_t, W_ih) * ((h_tm1 * W_hh) + b_h))
+        else:
+            # DropConnect variant
+            h_t = self.g(theano.dot(x_t, W_ih) * ((h_tm1 * self.mask(W_hh, inference=self.inference)) + self.mask(b_h, inference=self.inference)))
+
+        # y_t = act(W_ho h_t + b_o)
+        y_t = self.act(theano.dot(h_t, W_ho) + b_o)
+
+        return [h_t, y_t]
+
+    def __init__(self, rng, n_in, n_hidden, n_out, g=g, act=act, p=.0):
+        super(Mutation2, self).__init__()
+
+        self.name = 'Mutation2(%i, %i, %i)' % (n_in, n_hidden, n_out)
+        self.n_hidden = n_hidden
+        self.g, self.act = g, act
+
+        self.params += self.g.params + self.act.params
+
+        self.mask = noise.BinomialDropout(p=p)
+        #self.mask = noise.Null()
+
+        self.non_sequences, self.sequences = self.get_parameters(rng, n_in, n_hidden, n_out)
+        self.params += self.non_sequences + self.sequences
+
+    def __call__(self, x, inference=False):
+        x = super(Mutation2, self).__call__(x)
+        self.inference = inference
+        # hidden and outputs of the entire sequence
+        [h_vals, y_vals], _ = theano.scan(fn=self.step,
+                                            sequences={'input': x, 'taps': [0]},
+                                            outputs_info=[T.alloc(self.sequences, x.shape[1], self.n_hidden), None], # initialiation
+                                            non_sequences=self.non_sequences) # unchanging variables
+        return y_vals, [h_vals]
+
+class LSTM(RecurrentLayer):
+    '''
+        Long Short-Term Memory (LSTM) Recurrent Neural Network, as described in [1].
         Given an input sequence <x_1, .., x_t>, the output sequence <y_1, .., y_t> is calculated as follows:
 
         i_t = σ(W_xi x_t + W_hi h_t-1 + W_ci c_t-1 + b_i),
@@ -118,7 +254,6 @@ class LSTM(layer.Layer):
     # prior results: h_tm1, c_tm1
     # non-sequences: W_xi, W_hi, W_ci, b_i, W_xf, W_hf, W_cf, b_f, W_xc, W_hc, b_c, W_xo, W_ho, W_co, b_o, W_hy, b_y
     def step(self, x_t, h_tm1, c_tm1, W_xi, W_hi, W_ci, b_i, W_xf, W_hf, W_cf, b_f, W_xc, W_hc, b_c, W_xo, W_ho, W_co, b_o, W_hy, b_y):
-
         # i_t = sigma(W_xi x_t + W_hi h_tm1 + W_ci c_tm1 + b_i)
         i_t = self.sigma(theano.dot(x_t, W_xi) + theano.dot(h_tm1, W_hi) + theano.dot(c_tm1, W_ci) + b_i)
 
@@ -139,12 +274,15 @@ class LSTM(layer.Layer):
 
         return [h_t, c_t, y_t]
 
-    def __init__(self, rng, n_in, n_hidden, n_out, sigma=sigma, g=g, h=h, act=act):
+    def __init__(self, rng, n_in, n_hidden, n_out, sigma=sigma, g=g, h=h, act=act, p=.0):
         super(LSTM, self).__init__()
 
         self.name = 'LSTM(%i, %i, %i)' % (n_in, n_hidden, n_out)
+        self.n_hidden = n_hidden
         self.sigma, self.g, self.h = sigma, g, h
         self.act = act
+
+        self.params += self.sigma.params + self.g.params + self.h.params + self.act.params
 
         n_i = n_c = n_o = n_f = n_hidden
 
@@ -155,17 +293,16 @@ class LSTM(layer.Layer):
 
         self.params += self.non_sequences + [c0]
 
-    def __call__(self, x):
+    def __call__(self, x, inference=False):
+        x = super(LSTM, self).__call__(x)
         # hidden and outputs of the entire sequence
         [h_vals, c_vals, y_vals], _ = theano.scan(fn=self.step,
                                                     sequences={'input': x, 'taps': [0]},
-                                                    outputs_info=self.sequences + [None], # corresponds to return type of fn
+                                                    outputs_info=[T.alloc(self.sequences[0], x.shape[1], self.n_hidden), T.alloc(self.sequences[1], x.shape[1], self.n_hidden), None], # initialiation
                                                     non_sequences=self.non_sequences)
         return y_vals, [h_vals, c_vals]
 
-
-
-class LSTMP(layer.Layer):
+class LSTMP(RecurrentLayer):
     '''
         Projected Long Short-Term Meory (LSTMP) Recurrent Neural Network, as described in [1].
         Given an input sequence <x_1, .., x_t>, the output sequence <y_1, .., y_t> is calculated as follows:
@@ -184,7 +321,6 @@ class LSTMP(layer.Layer):
     '''
 
     def get_parameters(self, rng, n_in, n_out, n_i, n_c, n_r, n_o, n_f, n_hidden):
-
         W_xi = self.initialize(rng, size=(n_in, n_i), tag='W_xi')
         W_hi = self.initialize(rng, size=(n_hidden, n_i), tag='W_hi')
         W_ci = self.initialize(rng, size=(n_c, n_i), tag='W_ci')
@@ -217,7 +353,6 @@ class LSTMP(layer.Layer):
     # prior results: h_tm1, c_tm1
     # non-sequences: W_xi, W_hi, W_ci, b_i, W_xf, W_hf, W_cf, b_f, W_xc, W_hc, b_c, W_xo, W_ho, W_co, b_o, W_hr, W_ry, b_y
     def step(self, x_t, h_tm1, c_tm1, W_xi, W_hi, W_ci, b_i, W_xf, W_hf, W_cf, b_f, W_xc, W_hc, b_c, W_xo, W_ho, W_co, b_o, W_hr, W_ry, b_y):
-
         # i_t = sigma(W_xi x_t + W_hi h_tm1 + W_ci c_tm1 + b_i)
         i_t = self.sigma(theano.dot(x_t, W_xi) + theano.dot(h_tm1, W_hi) +
         theano.dot(c_tm1, W_ci) + b_i)
@@ -242,13 +377,15 @@ class LSTMP(layer.Layer):
 
         return [h_t, c_t, y_t]
 
-    def __init__(self, rng, n_in, n_hidden, n_out, sigma=sigma, g=g, h=h, act=act):
+    def __init__(self, rng, n_in, n_hidden, n_out, sigma=sigma, g=g, h=h, act=act, p=.0):
         super(LSTMP, self).__init__()
 
         self.name = 'LSTMP(%i, %i, %i)' % (n_in, n_hidden, n_out)
-
+        self.n_hidden = n_hidden
         self.sigma, self.g, self.h = sigma, g, h
         self.act = act
+
+        self.params += self.sigma.params + self.g.params + self.h.params + self.act.params
 
         n_i = n_c = n_r = n_o = n_f = n_hidden
 
@@ -259,17 +396,16 @@ class LSTMP(layer.Layer):
 
         self.params += self.non_sequences + [c0]
 
-    def __call__(self, x):
+    def __call__(self, x, inference=False):
+        x = super(LSTMP, self).__call__(x)
         # hidden and outputs of the entire sequence
         [h_vals, c_vals, y_vals], _ = theano.scan(fn=self.step,
                                                     sequences={'input': x, 'taps': [0]},
-                                                    outputs_info=self.sequences + [None], # corresponds to return type of fn
+                                                    outputs_info=[T.alloc(self.sequences[0], x.shape[1], self.n_hidden), T.alloc(self.sequences[1], x.shape[1], self.n_hidden), None], # initialiation
                                                     non_sequences=self.non_sequences)
         return y_vals, [h_vals, c_vals]
 
-
-
-class GRU(layer.Layer):
+class GRU(RecurrentLayer):
     '''
         Gated Recurrent Unit (GRU) Recurrent Neural Network, as described in [1].
         Given an input sequence <x_1, .., x_t>, the output sequence <y_1, .., y_t> is calculated as follows:
@@ -286,7 +422,6 @@ class GRU(layer.Layer):
     '''
 
     def get_parameters(self, rng, n_in, n_out, n_z, n_r, n_t, n_h):
-
         W_xz = self.initialize(rng, size=(n_in, n_z), tag='W_xz')
         U_hz = self.initialize(rng, size=(n_h, n_z), tag='U_xz')
         b_z = self.initialize(rng, size=(n_z,), tag='b_z', type='zero')
@@ -309,7 +444,6 @@ class GRU(layer.Layer):
     # prior results: h_t-1
     # non-sequences: W_xz, U_hz, b_z, W_xr, U_hr, b_r, W_xt, U_ht, W_hy, b_y
     def step(self, x_t, h_tm1, W_xz, U_hz, b_z, W_xr, U_hr, b_r, W_xt, U_ht, W_hy, b_y):
-
         # z_t = sigma(W_xz x_t + U_hz h_t-1 + b_z)
         z_t = self.sigma(theano.dot(x_t, W_xz) + theano.dot(h_tm1, U_hz) + b_z)
 
@@ -327,13 +461,15 @@ class GRU(layer.Layer):
 
         return [h_t, y_t]
 
-    def __init__(self, rng, n_in, n_hidden, n_out, sigma=sigma, g=g, act=act):
+    def __init__(self, rng, n_in, n_hidden, n_out, sigma=sigma, g=g, act=act, p=.0):
         super(GRU, self).__init__()
 
         self.name = 'GRU(%i, %i, %i)' % (n_in, n_hidden, n_out)
-
+        self.n_hidden = n_hidden
         self.sigma, self.g = sigma, g
         self.act = act
+
+        self.params += self.sigma.params + self.g.params + self.act.params
 
         n_z = n_r = n_t = n_hidden
 
@@ -341,10 +477,11 @@ class GRU(layer.Layer):
 
         self.params += self.non_sequences
 
-    def __call__(self, x):
+    def __call__(self, x, inference=False):
+        x = super(GRU, self).__call__(x)
         # hidden and outputs of the entire sequence
         [h_vals, y_vals], _ = theano.scan(fn=self.step,
-                                                    sequences={'input': x, 'taps': [0]},
-                                                    outputs_info=self.sequences + [None], # corresponds to return type of fn
-                                                    non_sequences=self.non_sequences)
+                                            sequences={'input': x, 'taps': [0]},
+                                            outputs_info=[T.alloc(self.sequences, x.shape[1], self.n_hidden), None], # initialiation
+                                            non_sequences=self.non_sequences)
         return y_vals, [h_vals]

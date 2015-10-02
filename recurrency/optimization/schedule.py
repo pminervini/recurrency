@@ -48,9 +48,9 @@ class Momentum(Schedule):
 
         [1] Rumelhart, D. E. et al. - Learning representations by back-propagating errors. - Nature 323
     '''
-    def __init__(self, params, rate=1.0, decay=0.95):
+    def __init__(self, params, rate=1.0, momentum=0.95):
         self.param_previous_update_map = collections.OrderedDict()
-        self.rate, self.decay = rate, decay
+        self.rate, self.momentum = rate, momentum
 
         for param in params:
             # Allocate the previous updates
@@ -63,7 +63,7 @@ class Momentum(Schedule):
         param_previous_update = self.param_previous_update_map[param]
 
         # decay represents the momentum
-        delta_x_t = (self.decay * param_previous_update) - (self.rate * gradient)
+        delta_x_t = (self.momentum * param_previous_update) - (self.rate * gradient)
 
         param_previous_update_updated = delta_x_t
         updates[param_previous_update] = param_previous_update_updated
