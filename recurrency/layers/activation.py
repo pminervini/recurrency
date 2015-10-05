@@ -1,15 +1,13 @@
-#!/usr/bin/python3 -uB
 # -*- coding: utf-8 -*-
 
 import numpy as np
 import theano
 import theano.tensor as T
 
-import recurrency.utils.utils as utils
+import recurrency.utils as utils
 import recurrency.layers.layer as layer
 
 import logging
-
 
 class SoftMax(layer.Layer):
     def __init__(self):

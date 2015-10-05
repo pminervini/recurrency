@@ -1,11 +1,9 @@
-#!/usr/bin/python -uB
 # -*- coding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
 
 import theano
 import theano.tensor as T
-
 
 class Regularizer(object):
     __metaclass__ = ABCMeta

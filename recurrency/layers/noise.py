@@ -1,4 +1,3 @@
-#!/usr/bin/python -uB
 # -*- coding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
@@ -9,10 +8,9 @@ import theano.tensor as T
 import theano.sandbox.rng_mrg as R
 
 import recurrency.layers.layer as layer
-import recurrency.utils.utils as utils
+import recurrency.utils as utils
 
 import logging
-
 
 class NoiseLayer(layer.Layer):
     '''
